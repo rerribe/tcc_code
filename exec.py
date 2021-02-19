@@ -13,7 +13,7 @@ plt.rcParams['figure.figsize'] = (15,5)
 
 qm = QuineMcCluskey()
 
-#Lê o arquivo de extensao .kiss e
+#Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
 temp = open('lion.kiss2')
 line_char = temp.readlines()
@@ -38,12 +38,16 @@ espaco_busca = []
 espaco_aleatorio = []
 estados_convertido = int(estados[0].split()[1])
 
+#define o tamanho do espaço de busca basedado no valor entregue pelo arquivo
+
 tamanho_espaco_busca = math.ceil(np.log2(estados_convertido))
 
 
 msf_pronta = []
 
 l = line_char[5:]
+
+# nesse trecho os dados são separados, tratados e é criada a lista no formato que o Quine_Mccluskey pode simplificar
 
 for i in range(len(l)):
     entrada = l[i].split()[0]
@@ -64,6 +68,8 @@ for i in range(len(l)):
     msf_pronta.append(linha)
     #print(msf_pronta[i])
 
+
+#essa função calcula a quantidade de implicantes e variáveis de uma lista
     
 def calculo_peso(lista_1):
     contador_implicante = 0
@@ -77,6 +83,8 @@ def calculo_peso(lista_1):
                 contador_implicante += 1
     return contador_implicante+contador_termo
 
+# essa função separa da MSF as linhas relativas ao proximo estado e sáida para a contagem do peso
+
 def prepara_lista(lista):
     tamanho_calculo = len(entrada)+len(atual_convertido[1])
     para_calculo = []
@@ -86,9 +94,13 @@ def prepara_lista(lista):
     return calculo_peso(para_calculo)
     
 
+# neste ponto é criado o espaco de busca com todos as atribuicoes possíveis para representar a msf
+
 for i in range (tamanho_espaco_busca**2):
         espaco_busca.append(bin(i)[2:].zfill(tamanho_espaco_busca))
         #espaco_aleatorio.append(bin(i)[2:].zfill(tamanho_espaco_busca))
+
+# cria uma lista aleatória com os valores do espaço de busca
 
 def cria_nova_msf():
     #print(tamanho_espaco_busca)
@@ -98,12 +110,15 @@ def cria_nova_msf():
 
 #nova_msf = []
 
+# faz a comparação entre a lista entregue e o valor correspondente a ela na lista de valores aleatórios
+
 def correspondente(palavra):
     espaco_aleatorio = list(cria_nova_msf())
     for i in range(len(espaco_busca)):
         if palavra == espaco_busca[i]:
             return espaco_aleatorio[i]
 
+# recebe uma tabela, e a partir de comarações cria outra com os valores trocados pela atribuição aleatória
 
 def nova_maquina():
     novo_atual = []
@@ -119,6 +134,8 @@ def nova_maquina():
     return nova_msf
 
 
+# algoritmo do SA, que realiza as comparaçoes e entrega a atribuição com o menor peso após a simplificação
+# a primeira iteração do SA, utiliza o valor da msf entregue pelo arquivo.kiss
 
 def simulated_annealing(temperatura):
     temperatura_final = 1

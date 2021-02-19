@@ -15,7 +15,7 @@ qm = QuineMcCluskey()
 
 #Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
-temp = open('lion.kiss2')
+temp = open('bbara.kiss2')
 line_char = temp.readlines()
 l = []
 entrada = []
@@ -146,7 +146,7 @@ def simulated_annealing(temperatura):
             nova_solucao = nova_maquina()
             np.warnings.filterwarnings('ignore')
             nova_solucao_simplificada = list(qm.simplify_los(nova_solucao))
-            probabilidade = np.random.normal()
+            probabilidade = np.random.uniform(0, 1)
             if (prepara_lista(nova_solucao_simplificada) - prepara_lista(melhor)) < 0  or probabilidade < (np.log(-(prepara_lista(nova_solucao_simplificada)) - (prepara_lista(melhor)))/temperatura):
                 melhor = nova_solucao_simplificada
                 historico.append(prepara_lista(melhor))

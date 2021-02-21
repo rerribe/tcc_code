@@ -15,7 +15,7 @@ qm = QuineMcCluskey()
 
 #Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
-temp = open('bbara.kiss2')
+temp = open('lion9.kiss2')
 line_char = temp.readlines()
 l = []
 entrada = []
@@ -64,7 +64,7 @@ for i in range(len(l)):
     #atual_binario = atual_convertido[i]
     proximo_convertido.append(bin(proximo_inteiro)[2:].zfill(tamanho_espaco_busca))
     #proximo_binario = proximo_convertido[i]
-    linha = entrada+atual_convertido[i]+proximo_convertido[i]+saida
+    linha = str(entrada)+str(atual_convertido[i])+str(proximo_convertido[i])+str(saida)
     msf_pronta.append(linha)
     #print(msf_pronta[i])
 
@@ -128,7 +128,7 @@ def nova_maquina():
         #print(atual_convertido[i],proximo_convertido[i])
         novo_atual.append(correspondente(atual_convertido[i]))
         novo_proximo.append(correspondente(proximo_convertido[i]))
-        nova_atrib = lista_entradas[i]+novo_atual[i]+novo_proximo[i]+lista_saidas[i]
+        nova_atrib = str(lista_entradas[i])+str(novo_atual[i])+str(novo_proximo[i])+str(lista_saidas[i])
         nova_msf.append(nova_atrib)
         
     return nova_msf
@@ -140,23 +140,34 @@ def nova_maquina():
 def simulated_annealing(temperatura):
     temperatura_final = 1
     melhor = list(qm.simplify_los(msf_pronta))
+    custo_inicial = prepara_lista(melhor)
+    print(custo_inicial)
     historico = [prepara_lista(melhor)]
     while temperatura > temperatura_final:
-        for i in range(10):
+        for i in range(5):
             nova_solucao = nova_maquina()
             np.warnings.filterwarnings('ignore')
             nova_solucao_simplificada = list(qm.simplify_los(nova_solucao))
+            custo_local = prepara_lista(nova_solucao_simplificada)
+            melhor_custo = prepara_lista(melhor)
             probabilidade = np.random.uniform(0, 1)
-            if (prepara_lista(nova_solucao_simplificada) - prepara_lista(melhor)) < 0  or probabilidade < (np.log(-(prepara_lista(nova_solucao_simplificada)) - (prepara_lista(melhor)))/temperatura):
-                melhor = nova_solucao_simplificada
-                historico.append(prepara_lista(melhor))
+            if custo_local - melhor_custo < 0  or probabilidade < np.log(-(custo_local - melhor_custo)/temperatura):
+            	melhor = nova_solucao_simplificada
+            	historico.append(melhor_custo)
+            	print("trocou!!")
+            print(".",custo_local)
         temperatura = temperatura-1
-    return melhor, historico
+        print(temperatura)
+    custo_final = prepara_lista(melhor)
+    melhora = 100-((custo_final *100)/custo_inicial)
+    
+    return melhor, historico, melhora
 
 
-temperatura = 50
-resultado, historico = simulated_annealing(temperatura)
+temperatura = 150
+resultado, historico, melhora_da_solucao = simulated_annealing(temperatura)
 print(resultado)
 print(historico)
-plt.plot(historico)
+print("melhorou:",melhora_da_solucao,"%")
+#plt.plot(historico)
 #plt.plot(historico, hv(historico))

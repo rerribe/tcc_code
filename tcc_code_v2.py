@@ -68,7 +68,7 @@ for i in range(len(l)):
     #print(msf_pronta[i])
 
 
-for i in range (tamanho_espaco_busca**2):
+for i in range (2**tamanho_espaco_busca):
         espaco_busca.append(bin(i)[2:].zfill(tamanho_espaco_busca))
         #espaco_aleatorio.append(bin(i)[2:].zfill(tamanho_espaco_busca))
 

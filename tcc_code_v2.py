@@ -1,4 +1,3 @@
-#%matplotlib inline
 import os
 import sys
 import string
@@ -15,7 +14,7 @@ qm = QuineMcCluskey()
 
 #Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
-temp = open('tav.kiss2')
+temp = open('lion.kiss2')
 line_char = temp.readlines()
 l = []
 entrada = []
@@ -69,39 +68,10 @@ for i in range(len(l)):
     #print(msf_pronta[i])
 
 
-#essa função calcula a quantidade de implicantes e variáveis de uma lista
-    
-def calculo_peso(lista_1):
-    contador_dc = 0
-    contador_termo = 0
-    contador_literal = 0
-    #tamanho_calculo = len(tamanho_espaco_busca)+len(saida)
-    #para_calculo = lista_l[:tamanho_calculo]
-    for i in range(len(lista_1)):
-        contador_termo += 1
-        for j in range(len(lista_1[i])):
-            contador_literal +=1
-            if (lista_1[i][j] == '-'):
-                contador_dc += 1
-    return (contador_termo+contador_literal)-contador_dc
-
-# essa função separa da MSF as linhas relativas ao proximo estado e sáida para a contagem do peso
-
-def prepara_lista(lista):
-    para_calculo = []
-    #print(len(entrada),len(atual_convertido[1]),len(proximo_convertido[1]),len(saida), len(lista[1]))
-    for i in range(len(lista)):
-        para_calculo.append(lista[i][len(entrada):-(len(saida))])
-    return calculo_peso(para_calculo)
-    
-
-# neste ponto é criado o espaco de busca com todos as atribuicoes possíveis para representar a msf
-
 for i in range (tamanho_espaco_busca**2):
         espaco_busca.append(bin(i)[2:].zfill(tamanho_espaco_busca))
         #espaco_aleatorio.append(bin(i)[2:].zfill(tamanho_espaco_busca))
 
-# cria uma lista aleatória com os valores do espaço de busca
 
 def cria_nova_msf():
     #print(tamanho_espaco_busca)
@@ -109,9 +79,6 @@ def cria_nova_msf():
     shuffle(espaco_aleatorio)
     return set(espaco_aleatorio)
 
-#nova_msf = []
-
-# faz a comparação entre a lista entregue e o valor correspondente a ela na lista de valores aleatórios
 
 def correspondente(palavra):
     espaco_aleatorio = list(cria_nova_msf())
@@ -119,7 +86,6 @@ def correspondente(palavra):
         if palavra == espaco_busca[i]:
             return str(espaco_aleatorio[i])
 
-# recebe uma tabela, e a partir de comarações cria outra com os valores trocados pela atribuição aleatória
 
 def nova_maquina():
     novo_atual = []
@@ -128,38 +94,64 @@ def nova_maquina():
     for i in range(len(l)):
         #print(atual_convertido[i],proximo_convertido[i])
         novo_atual.append(correspondente(atual_convertido[i]))
+        #print("novo atual:",novo_atual[i])
         novo_proximo.append(correspondente(proximo_convertido[i]))
+        #print("novo proximo:",novo_proximo[i])
         nova_atrib = str(lista_entradas[i])+str(novo_atual[i])+str(novo_proximo[i])+str(lista_saidas[i])
         nova_msf.append(nova_atrib)
         
     return nova_msf
 
+
 def simplifica(lista):
+    lista_simplificada = []
+    lista_simplificada = qm.simplify_los(lista)
+    return lista_simplificada
+
+
+def calcula_custo(lista):
     nova_lista = []
+    nova_lista_saidas = []
+    nova_lista_transicoes = []
+    lista_para_calculo = []
+    comp_transit = len(entrada)+len(atual_convertido[0])
+    comp_seg_lista = len(saida)+tamanho_espaco_busca
     for i in range(len(lista)):
         nova_lista.append(lista[i][:-len(saida)])
-    nova_lista_simplificada = list(qm.simplify_los(nova_lista))
-    for i in range(len(nova_lista_simplificada)):
-        nova_lista_simplificada.append(lista[i][:len(saida)])
-    return set(nova_lista_simplificada)
+        nova_lista_saidas.append(lista[i][comp_transit:-len(saida)])
+        nova_lista_transicoes.append(lista[i][:-comp_seg_lista])
+        
+    for i in range(len(nova_lista_saidas)):
+        for j in range(len(nova_lista_saidas[i])):
+            if nova_lista_saidas[i][j] == '1':
+                #print(nova_lista_saidas[i])
+                lista_para_calculo.append(nova_lista_transicoes[i])
+    
+    quantidade_dc = 0
+    for i in range(len(lista_para_calculo)):
+        for j in range(len(lista_para_calculo[i])):
+            if lista_para_calculo[i][j] == '-':
+                quantidade_dc += 1
+                
+    custo = (len(lista_para_calculo)*len(lista_para_calculo[0]))-quantidade_dc
+    return custo
 
-# algoritmo do SA, que realiza as comparaçoes e entrega a atribuição com o menor peso após a simplificação
-# a primeira iteração do SA, utiliza o valor da msf entregue pelo arquivo.kiss
+
 
 def simulated_annealing(temperatura):
     temperatura_inicial = temperatura
     temperatura_final = 10
     melhor = list(simplifica(msf_pronta))
-    custo_inicial = prepara_lista(melhor)
+    custo_inicial = calcula_custo(melhor)
     print(custo_inicial)
-    historico = [prepara_lista(melhor)]
+    historico = [calcula_custo(melhor)]
     while temperatura > temperatura_final:
         for i in range(5):
             nova_solucao = nova_maquina()
             np.warnings.filterwarnings('ignore')
             nova_solucao_simplificada = list(simplifica(nova_solucao))
-            custo_local = prepara_lista(nova_solucao_simplificada)
-            melhor_custo = prepara_lista(melhor)
+            custo_local = calcula_custo(nova_solucao_simplificada)
+            melhor_custo = calcula_custo(melhor)
             probabilidade = np.random.uniform(0, 3)
             if custo_local - melhor_custo < 0  or probabilidade < np.log((melhor_custo-custo_local)/temperatura):
             	melhor = nova_solucao_simplificada
@@ -172,10 +164,11 @@ def simulated_annealing(temperatura):
         	temperatura = temperatura-5
         #print(temperatura)
     
-    custo_final = prepara_lista(melhor)
+    custo_final = calcula_custo(melhor)
     melhora = 100-((custo_final *100)/custo_inicial)
     
     return melhor, historico, melhora
+
 
 
 temperatura = 1000
@@ -184,5 +177,5 @@ for i in range(len(resultado)):
 	print(resultado[i])
 print(historico)
 print("melhorou:",melhora_da_solucao,"%")
-#plt.plot(historico)
+plt.plot(historico)
 #plt.plot(historico, hv(historico))

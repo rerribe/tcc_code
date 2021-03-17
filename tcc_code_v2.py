@@ -2,19 +2,20 @@ import os
 import sys
 import string
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from sympy import *
 from qm import*
 from math import*
 from random import shuffle
+import random
 
-plt.rcParams['figure.figsize'] = (15,5)
+#plt.rcParams['figure.figsize'] = (15,5)
 
 qm = QuineMcCluskey()
 
 #Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
-temp = open('lion.kiss2')
+temp = open('bbara.kiss2')
 line_char = temp.readlines()
 l = []
 entrada = []
@@ -73,17 +74,18 @@ for i in range (2**tamanho_espaco_busca):
         #espaco_aleatorio.append(bin(i)[2:].zfill(tamanho_espaco_busca))
 
 
-def cria_nova_msf():
-    #print(tamanho_espaco_busca)
-    espaco_aleatorio = espaco_busca.copy()
-    shuffle(espaco_aleatorio)
-    return set(espaco_aleatorio)
+#def cria_nova_msf():
+#    #print(tamanho_espaco_busca)
+#    espaco_aleatorio = espaco_busca.copy()
+#    shuffle(espaco_aleatorio)
+#    return set(espaco_aleatorio)
 
 
-def correspondente(palavra):
-    espaco_aleatorio = list(cria_nova_msf())
+def correspondente(palavra1,palavra2):
+    #espaco_aleatorio = list(cria_nova_msf())
+    espaco_aleatorio = palavra2
     for i in range(len(espaco_busca)):
-        if palavra == espaco_busca[i]:
+        if palavra1 == espaco_busca[i]:
             return str(espaco_aleatorio[i])
 
 
@@ -91,11 +93,29 @@ def nova_maquina():
     novo_atual = []
     novo_proximo = []
     nova_msf = []
+    
+    espaco_aleatorio = espaco_busca.copy()
+
+    # esse trecho a ideia é realizar varios embaralhamentos do espaco de busca na tentativa de aumentar a diferenca entre a 
+    # msf inicial e a msf de saida
+
+    for i in range(5):
+    	shuffle(espaco_aleatorio)
+    
+    # percebi que esse trecho estava gerando uma nova lista de atribuicoes a cada chamada de teste de correspondencia
+    # creio que isso estava causando um efeito indesejado, uma que vez isso provavelmente estava gerando inconsistencias 
+    # que podem estar passando batidas
+    # então agora é criada apenas uma lista que é utilizada para a comparacao entre atual e proximos estados da primeira 
+    # lista e do novo conjunto de atribuicoes
+
+    # aparentemente essa alteração, que pra mim faz sentido, fez cair muito a quantidade de geracao de msf's de tamanho menor que
+    # a inicial
+    
     for i in range(len(l)):
         #print(atual_convertido[i],proximo_convertido[i])
-        novo_atual.append(correspondente(atual_convertido[i]))
+        novo_atual.append(correspondente(atual_convertido[i],espaco_aleatorio))
         #print("novo atual:",novo_atual[i])
-        novo_proximo.append(correspondente(proximo_convertido[i]))
+        novo_proximo.append(correspondente(proximo_convertido[i],espaco_aleatorio))
         #print("novo proximo:",novo_proximo[i])
         nova_atrib = str(lista_entradas[i])+str(novo_atual[i])+str(novo_proximo[i])+str(lista_saidas[i])
         nova_msf.append(nova_atrib)
@@ -104,26 +124,28 @@ def nova_maquina():
 
 
 def simplifica(lista):
-    lista_simplificada = []
-    lista_simplificada = qm.simplify_los(lista)
+    lista_para_simplificar = []
+    for i in range(len(lista)):
+        lista_para_simplificar.append(lista[i][:-len(saida)])
+
+    lista_simplificada = qm.simplify_los(lista_para_simplificar)
     return lista_simplificada
 
-
 def calcula_custo(lista):
-    nova_lista = []
-    nova_lista_saidas = []
+    #nova_lista = []
+    nova_lista_prox = []
     nova_lista_transicoes = []
     lista_para_calculo = []
     comp_transit = len(entrada)+len(atual_convertido[0])
     comp_seg_lista = len(saida)+tamanho_espaco_busca
     for i in range(len(lista)):
-        nova_lista.append(lista[i][:-len(saida)])
-        nova_lista_saidas.append(lista[i][comp_transit:-len(saida)])
-        nova_lista_transicoes.append(lista[i][:-comp_seg_lista])
+        #nova_lista.append(lista[i][:-len(saida)])
+        nova_lista_prox.append(lista[i][comp_transit:])
+        nova_lista_transicoes.append(lista[i][:-tamanho_espaco_busca])
         
-    for i in range(len(nova_lista_saidas)):
-        for j in range(len(nova_lista_saidas[i])):
-            if nova_lista_saidas[i][j] == '1':
+    for i in range(len(nova_lista_prox)):
+        for j in range(len(nova_lista_prox[i])):
+            if nova_lista_prox[i][j] == '1':
                 #print(nova_lista_saidas[i])
                 lista_para_calculo.append(nova_lista_transicoes[i])
     
@@ -144,26 +166,33 @@ def simulated_annealing(temperatura):
     melhor = list(simplifica(msf_pronta))
     custo_inicial = calcula_custo(melhor)
     print(custo_inicial)
-    historico = [calcula_custo(melhor)]
+    historico = [custo_inicial]
     while temperatura > temperatura_final:
-        for i in range(5):
+        for i in range(2):
             nova_solucao = nova_maquina()
             np.warnings.filterwarnings('ignore')
             nova_solucao_simplificada = list(simplifica(nova_solucao))
             custo_local = calcula_custo(nova_solucao_simplificada)
             melhor_custo = calcula_custo(melhor)
-            probabilidade = np.random.uniform(0, 3)
-            if custo_local - melhor_custo < 0  or probabilidade < np.log((melhor_custo-custo_local)/temperatura):
+            probabilidade = np.random.random_sample() # define um sample aleatorio entre 0 e 1, com zero fazendo parte do intervalo
+            if (custo_local - melhor_custo < 0):
             	melhor = nova_solucao_simplificada
             	historico.append(melhor_custo)
             	print(temperatura,"trocou!!")
+            else:
+                if (probabilidade < np.log(-(custo_local-melhor_custo)/temperatura)):
+            	    melhor = nova_solucao_simplificada
+            	    historico.append(melhor_custo)
+            	    print(temperatura,"trocou!!")
+            #sys.stdout.write('.')
         
         if temperatura > temperatura/2:
         	temperatura = temperatura-10
         else:
         	temperatura = temperatura-5
         #print(temperatura)
-    
+        
+
     custo_final = calcula_custo(melhor)
     melhora = 100-((custo_final *100)/custo_inicial)
     
@@ -171,11 +200,13 @@ def simulated_annealing(temperatura):
 
 
 
-temperatura = 1000
-resultado, historico, melhora_da_solucao = simulated_annealing(temperatura)
-for i in range(len(resultado)):
-	print(resultado[i])
-print(historico)
-print("melhorou:",melhora_da_solucao,"%")
-plt.plot(historico)
+for i in range(10):
+    temperatura = 1000
+    resultado, historico, melhora_da_solucao = simulated_annealing(temperatura)
+    for i in range(len(resultado)):
+        print(resultado[i])
+    print(historico)
+    print("melhorou:",melhora_da_solucao,"%")
+
+#plt.plot(historico)
 #plt.plot(historico, hv(historico))

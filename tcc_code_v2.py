@@ -15,7 +15,7 @@ qm = QuineMcCluskey()
 
 #Lê o arquivo de extensao .kiss e separa as listas com as informações sobre a msf
 
-temp = open('bbara.kiss2')
+temp = open('lion9.kiss2')
 line_char = temp.readlines()
 l = []
 entrada = []
@@ -201,7 +201,7 @@ def simulated_annealing(temperatura):
 
 
 for i in range(10):
-    temperatura = 1000
+    temperatura = 3000
     resultado, historico, melhora_da_solucao = simulated_annealing(temperatura)
     for i in range(len(resultado)):
         print(resultado[i])
